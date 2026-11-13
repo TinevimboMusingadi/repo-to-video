@@ -37,15 +37,25 @@ def main():
     parser.add_argument(
         "--ui", "--serve",
         action="store_true",
-        help="Launch the interactive Streamlit Web Dashboard instead."
+        help="Launch the modern React Web Dashboard and API server."
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8000,
+        help="Port for the React Web Dashboard (default: 8000)."
     )
 
     args = parser.parse_args()
 
     if args.ui:
-        app_path = Path(__file__).resolve().parent / "app.py"
-        print(f"🚀 Launching Streamlit Web Dashboard ({app_path})...")
-        subprocess.run(["python", "-m", "streamlit", "run", str(app_path)], check=True)
+        import uvicorn
+        print("=" * 65)
+        print("🎬 REPO-TO-VIDEO REACT WEB DASHBOARD")
+        print("=" * 65)
+        print(f"🚀 Server running at: http://localhost:{args.port}")
+        print("=" * 65)
+        uvicorn.run("repo_to_video.server:app", host="0.0.0.0", port=args.port, reload=False)
         return
 
     print("=" * 65)

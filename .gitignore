@@ -26,6 +26,11 @@ media/
 # Streamlit
 .streamlit/
 
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+
 # IDE
 .vscode/
 .idea/

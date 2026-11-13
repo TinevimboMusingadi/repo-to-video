@@ -25,8 +25,9 @@
   - **Procedural Ambient Music**: Synthesizes lush ambient electronic background chord pads dynamically tailored to video duration.
   - **FFmpeg Ducking & Subtitles**: Automatically ducks background music volume during speech and exports `.srt` subtitle files.
 
-- 🖥️ **Human-in-the-Loop Web Dashboard & CLI**:
-  - Interactive **Streamlit** dashboard to inspect analysis, edit scene narrations, select visual styles, tune audio, and preview videos in an embedded player.
+- 🖥️ **Human-in-the-Loop React Web Dashboard & CLI**:
+  - High-performance **React + Vite** frontend with dark mode UI, directory tree explorer, live storyboard script editor, and embedded HTML5 video player.
+  - Asynchronous **FastAPI** backend orchestrating AI director, audio synthesis, and visual rendering with progress polling.
   - Full-featured **CLI** for headless batch processing.
 
 ---
@@ -35,53 +36,42 @@
 
 ### 1. Installation
 
-Ensure Python 3.10+, Node.js, and FFmpeg are available.
+Ensure Python 3.10+, Node.js (v18+), and FFmpeg are available.
 
 ```bash
 # Clone this repository
 git clone https://github.com/TinevimboMusingadi/repo-to-video.git
 cd repo-to-video
 
-# Install dependencies
+# Install Python dependencies
 pip install -r requirements.txt
-```
 
-### 2. Configure Environment
-
-Copy `.env.example` to `.env` and set your Gemini API key:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-TTS_MODEL=gemini-2.5-flash-preview-tts
-GEMINI_TEXT_MODEL=gemini-flash-latest
+# Build the React frontend
+cd frontend
+npm install
+npm run build
+cd ..
 ```
 
 ---
 
 ## 💻 Usage
 
-### Option A: Interactive Web Dashboard (Recommended)
+### Option A: Interactive React Web Dashboard (Recommended)
 
-Launch the web harness:
+Launch the React Web Dashboard:
 
 ```bash
 python main.py --ui
 ```
-or:
-```bash
-streamlit run repo_to_video/app.py
-```
 
-1. Enter a GitHub URL or local path.
-2. Click **Analyze Codebase**.
-3. Review and edit the generated storyboard in **Step 2**.
-4. Choose your visual style (3Blue1Brown, Motion Graphics, or Tutorial).
-5. Click **Render Onboarding Video** and watch your generated MP4 in the player!
+Open your browser to:
+👉 **`http://localhost:8000`**
+
+1. Enter a GitHub URL or local repository path.
+2. Click **Analyze & Draft**.
+3. In **Step 2**, edit scene narrations, adjust titles, and pick animation styles.
+4. Click **Render Video Now** to view real-time progress and watch the generated video!
 
 ---
 
