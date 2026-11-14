@@ -143,17 +143,24 @@ def list_videos():
     return {"videos": videos}
 
 
-# Static output files mount (served BEFORE the catch-all frontend route)
+# Static output files mount
 app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
 
-# Mount built React frontend - served at /app to avoid conflicting with /api routes
+# Mount frontend assets
 dist_dir = PROJECT_ROOT / "frontend" / "dist"
-if dist_dir.exists():
-    app.mount("/app", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+assets_dir = dist_dir / "assets"
+if assets_dir.exists():
+    app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
 
 
-# Root redirect to /app
-@app.get("/")
-def root():
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/app")
+# SPA Catch-all: serve index.html or static root files
+@app.get("/{full_path:path}")
+def serve_spa(full_path: str):
+    if dist_dir.exists():
+        target = dist_dir / full_path
+        if full_path and target.is_file():
+            return FileResponse(target)
+        index_file = dist_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+    return {"message": "Repo-to-Video API running. Build frontend with 'npm run build'."}

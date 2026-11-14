@@ -66,7 +66,7 @@ python main.py --ui
 ```
 
 Open your browser to:
-👉 **`http://localhost:8000`**
+👉 **`http://localhost:8080`**
 
 1. Enter a GitHub URL or local repository path.
 2. Click **Analyze & Draft**.
