@@ -59,14 +59,22 @@ class GeminiTTS:
                 print(f"[GeminiTTS] No audio data in response for scene {scene_id}, using fallback.")
                 return self._generate_fallback_audio(text, output_path)
 
-            # Write 16-bit linear PCM WAV
-            with wave.open(str(output_path), "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(sample_rate)
-                wf.writeframes(audio_bytes)
+            # Check if Gemini returned a complete WAV file (e.g. from gemini-3.8-flash-tts)
+            if audio_bytes.startswith(b"RIFF"):
+                output_path.write_bytes(audio_bytes)
+                with wave.open(str(output_path), "rb") as wf:
+                    frames = wf.getnframes()
+                    rate = wf.getframerate()
+                    duration = float(frames) / float(rate)
+            else:
+                # Raw 16-bit linear PCM WAV
+                with wave.open(str(output_path), "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(audio_bytes)
+                duration = len(audio_bytes) / (sample_rate * 2)
 
-            duration = len(audio_bytes) / (sample_rate * 2)  # 2 bytes per 16-bit sample
             return max(duration, 3.0)
 
         except Exception as e:

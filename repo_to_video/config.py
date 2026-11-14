@@ -15,7 +15,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # Gemini Models
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-flash-latest")
-TTS_MODEL = os.getenv("TTS_MODEL", "gemini-2.5-flash-preview-tts")
+TTS_MODEL = os.getenv("TTS_MODEL", "gemini-3.8-flash-tts")
 
 # Video Settings
 VIDEO_FPS = int(os.getenv("VIDEO_FPS", "30"))

@@ -175,7 +175,7 @@ export default function App() {
             color: 'var(--accent-emerald)',
             fontWeight: 600
           }}>
-            <CheckCircle2 size={14} /> Gemini 2.5 Active
+            <CheckCircle2 size={14} /> Gemini 3.8 TTS Active
           </div>
 
           <div style={{
