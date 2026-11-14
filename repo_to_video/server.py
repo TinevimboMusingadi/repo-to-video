@@ -1,14 +1,14 @@
 """FastAPI backend server for Repo-to-Video React Frontend."""
 
 from pathlib import Path
-import threading
 import uuid
 import os
 from typing import Dict, Any, Optional
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .pipeline import RepoToVideoPipeline
@@ -143,10 +143,17 @@ def list_videos():
     return {"videos": videos}
 
 
-# Static output files mount
+# Static output files mount (served BEFORE the catch-all frontend route)
 app.mount("/output", StaticFiles(directory=str(OUTPUT_DIR)), name="output")
 
-# Mount built frontend if dist exists
+# Mount built React frontend - served at /app to avoid conflicting with /api routes
 dist_dir = PROJECT_ROOT / "frontend" / "dist"
 if dist_dir.exists():
-    app.mount("/", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+    app.mount("/app", StaticFiles(directory=str(dist_dir), html=True), name="frontend")
+
+
+# Root redirect to /app
+@app.get("/")
+def root():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/app")

@@ -19,7 +19,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = ''   // same-origin when served by FastAPI; Vite proxy handles /api in dev;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('ingest');
