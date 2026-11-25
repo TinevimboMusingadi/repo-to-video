@@ -6,7 +6,7 @@ import time
 
 from .analyzer.git_manager import GitManager
 from .analyzer.scanner import CodebaseScanner, CodebaseDigest
-from .director.storyboard import Storyboard, StoryboardDirector
+from .director.storyboard import Storyboard, StoryboardDirector, DirectorPreferences
 from .audio.gemini_tts import GeminiTTS
 from .audio.music_generator import ProceduralMusicGenerator
 from .audio.audio_mixer import AudioMixer
@@ -56,19 +56,24 @@ class RepoToVideoPipeline:
 
         return repo_path, repo_name, digest
 
+    def get_intake_questions(self, digest: CodebaseDigest) -> dict:
+        """Generates interactive questionnaire options tailored to the scanned codebase."""
+        return self.director.generate_interview_questions(digest)
+
     def draft_storyboard(
         self,
         digest: CodebaseDigest,
         style: str = DEFAULT_STYLE,
+        preferences: Optional[DirectorPreferences] = None,
         progress_cb: Optional[Callable[[str, float], None]] = None
     ) -> Storyboard:
         """
-        Stage 2: Gemini AI analyzes the digest and crafts a structured storyboard.
+        Stage 2: Gemini AI analyzes the digest and crafts a structured storyboard tailored to intake questions.
         """
         if progress_cb:
-            progress_cb("Gemini AI is analyzing architecture and drafting storyboard...", 0.35)
+            progress_cb("Gemini AI is analyzing architecture and drafting tailored storyboard...", 0.35)
 
-        storyboard = self.director.generate_storyboard(digest, default_style=style)
+        storyboard = self.director.generate_storyboard(digest, default_style=style, preferences=preferences)
         return storyboard
 
     def render_video(

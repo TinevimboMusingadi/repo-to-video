@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from .pipeline import RepoToVideoPipeline
-from .director.storyboard import Storyboard, Scene
+from .director.storyboard import Storyboard, Scene, DirectorPreferences
 from .config import OUTPUT_DIR, PROJECT_ROOT, is_gemini_configured, DEFAULT_STYLE
 
 
@@ -31,11 +31,24 @@ pipeline = RepoToVideoPipeline()
 
 # Job tracker for async rendering
 jobs: Dict[str, Dict[str, Any]] = {}
+# Cache digests to avoid re-scanning during interactive intake
+digest_cache: Dict[str, Any] = {}
+
+
+class ScanRequest(BaseModel):
+    repo_target: str
+
+
+class DraftRequest(BaseModel):
+    repo_target: str
+    style: Optional[str] = DEFAULT_STYLE
+    preferences: Optional[DirectorPreferences] = None
 
 
 class AnalyzeRequest(BaseModel):
     repo_target: str
     style: Optional[str] = DEFAULT_STYLE
+    preferences: Optional[DirectorPreferences] = None
 
 
 class RenderRequest(BaseModel):
@@ -52,12 +65,66 @@ def health_check():
     }
 
 
+@app.post("/api/scan")
+def scan_repo(req: ScanRequest):
+    """Scans the repository and returns codebase digest plus tailored intake questionnaire."""
+    try:
+        repo_path, repo_name, digest = pipeline.analyze_repository(req.repo_target)
+        digest_cache[req.repo_target] = digest
+        questions = pipeline.get_intake_questions(digest)
+
+        return {
+            "success": True,
+            "repo_name": repo_name,
+            "digest": {
+                "repo_name": digest.repo_name,
+                "total_files": digest.total_files,
+                "languages": digest.languages,
+                "file_tree": digest.file_tree,
+                "readme_excerpt": digest.readme_excerpt,
+                "entry_points": digest.entry_points
+            },
+            "intake_questions": questions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/draft")
+def draft_storyboard_endpoint(req: DraftRequest):
+    """Drafts custom onboarding storyboard based on user intake answers and codebase digest."""
+    try:
+        if req.repo_target in digest_cache:
+            digest = digest_cache[req.repo_target]
+        else:
+            _, _, digest = pipeline.analyze_repository(req.repo_target)
+            digest_cache[req.repo_target] = digest
+
+        storyboard = pipeline.draft_storyboard(
+            digest,
+            style=req.style or DEFAULT_STYLE,
+            preferences=req.preferences
+        )
+        return {
+            "success": True,
+            "storyboard": storyboard.model_dump()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/analyze")
 def analyze_repo(req: AnalyzeRequest):
     """Analyzes a codebase and drafts the initial onboarding storyboard."""
     try:
         repo_path, repo_name, digest = pipeline.analyze_repository(req.repo_target)
-        storyboard = pipeline.draft_storyboard(digest, style=req.style or DEFAULT_STYLE)
+        digest_cache[req.repo_target] = digest
+        storyboard = pipeline.draft_storyboard(
+            digest,
+            style=req.style or DEFAULT_STYLE,
+            preferences=req.preferences
+        )
+        questions = pipeline.get_intake_questions(digest)
         
         return {
             "success": True,
@@ -70,6 +137,7 @@ def analyze_repo(req: AnalyzeRequest):
                 "readme_excerpt": digest.readme_excerpt,
                 "entry_points": digest.entry_points
             },
+            "intake_questions": questions,
             "storyboard": storyboard.model_dump()
         }
     except Exception as e:

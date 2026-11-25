@@ -4,10 +4,41 @@ from pathlib import Path
 import wave
 import math
 import struct
+import re
 from google import genai
 from google.genai import types
 
 from ..config import GEMINI_API_KEY, TTS_MODEL, TEMP_DIR
+
+
+def clean_narration_for_tts(text: str) -> str:
+    """
+    Cleans raw storyboard narration text so TTS synthesizes pure, natural speech
+    without pronouncing prompt meta-instructions, stage directions, or markdown symbols.
+    """
+    if not text:
+        return ""
+
+    cleaned = text
+    # Remove bracketed stage directions e.g. [pause], [upbeat music], [Visual cue: ...]
+    cleaned = re.sub(r"\[(?:visual|animation|audio|music|sound|pause|stage|note|cue|cut|scene|screen)[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[.*?\]", "", cleaned)
+    
+    # Parenthesized directions e.g. (read carefully...), (pause), (visual...)
+    cleaned = re.sub(r"\((?:read\s+carefully|note|pause|visual|animation|camera|voiceover|cue)[^\)]*\)", "", cleaned, flags=re.IGNORECASE)
+
+    # Remove common narration meta prefixes at line starts
+    cleaned = re.sub(r"^(?:narration|narrator|voiceover|speaker|script|developer|read carefully[^:]*):\s*", "", cleaned, flags=re.IGNORECASE | re.MULTILINE)
+
+    # Strip markdown formatting: bold, italic, headers, backticks, blockquotes
+    cleaned = re.sub(r"[*_~`#>]", "", cleaned)
+
+    # Strip code block fences if mistakenly embedded in speech
+    cleaned = re.sub(r"```[\s\S]*?```", "", cleaned)
+
+    # Normalize whitespace
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 
 class GeminiTTS:
@@ -26,16 +57,22 @@ class GeminiTTS:
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
+        # Sanitize narration text to prevent pronouncing meta instructions or markdown
+        speech_text = clean_narration_for_tts(text)
+        if not speech_text:
+            speech_text = text.strip() or "Onboarding scene overview."
+
         if not self.client:
-            return self._generate_fallback_audio(text, output_path)
+            return self._generate_fallback_audio(speech_text, output_path)
 
         try:
-            # Request audio modality from Gemini TTS
+            # Request audio modality from Gemini TTS with pure spoken text only
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=f"Please read the following technical narration clearly and naturally for a developer explainer video:\n\n{text}",
+                contents=speech_text,
                 config=types.GenerateContentConfig(
-                    response_modalities=["AUDIO"]
+                    response_modalities=["AUDIO"],
+                    system_instruction="You are an engaging professional tech documentary narrator. Read only the exact provided speech text directly, clearly and naturally, without repeating instructions or adding introductory remarks."
                 )
             )
 
